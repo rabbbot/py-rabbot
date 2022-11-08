@@ -82,8 +82,8 @@ else:
         password=mongo_password
     )
 
-db = client.karma_db
-collection = db.karma_db
+db = client.unslack_karma_db
+collection = db.unslack_karma_db
 
 intents = discord.Intents.default()
 intents.message_content = True
