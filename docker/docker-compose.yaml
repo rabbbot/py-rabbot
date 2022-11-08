@@ -16,6 +16,7 @@ services:
     environment:
       MONGO_USERNAME: ${MONGO_USERNAME}
       MONGO_PASSWORD: ${MONGO_PASSWORD}
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
     volumes:
       - /root/docker/logs:/src/logs
     restart: unless-stopped
