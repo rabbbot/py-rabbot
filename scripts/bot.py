@@ -1,11 +1,11 @@
-# bot.py
 import os
 import re
 import discord
+import logging
 from dotenv import load_dotenv
 
 from pymongo import MongoClient, ReturnDocument
-from pprint import pprint
+# from pprint import pprint
 
 class MyClient(discord.Client):
     async def on_ready(self):
@@ -89,5 +89,9 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True 
 
-client = MyClient(intents=intents, )
-client.run(TOKEN)
+client = MyClient(intents=intents)
+
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+
+if __name__ == '__main__':
+    client.run(TOKEN, log_handler=handler, log_level=logging.DEBUG)
