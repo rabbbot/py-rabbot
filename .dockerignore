@@ -1,0 +1,6 @@
+# flyctl launch added from .gitignore
+**/venv
+**/.env
+**/discord.log
+**/backup
+**/database.ini

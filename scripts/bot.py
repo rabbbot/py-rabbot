@@ -3,9 +3,7 @@ import re
 import discord
 import logging
 from dotenv import load_dotenv
-
-from pymongo import MongoClient, ReturnDocument
-# from pprint import pprint
+import psycopg2
 
 class MyClient(discord.Client):
     async def on_ready(self):
@@ -24,8 +22,9 @@ class MyClient(discord.Client):
                 # TODO: Use a try statement here. int() in find_display_name is going to be problematic
                 if '@' in item:
                     item = self.find_display_name(item)
-                self.karmic_repercussion(item, plus_or_minus)
-                message = self.find_karma(item, plus_or_minus)
+                self.karmic_repercussion(item.lower(), plus_or_minus)
+                record = self.find_karma(item.lower())
+                message = self.compile_message(record, plus_or_minus)
                 await channel.send(message)
 
     # Finds the display_name associated with a discord user ID
@@ -34,64 +33,83 @@ class MyClient(discord.Client):
         profile_name = client.get_user(int(discord_user))
         return profile_name.name
 
-    # Handle database updates
-    def db_update(self, filter, i):
-        if collection.find_one(filter):
-            collection.find_one_and_update(
-                filter, 
-                {'$inc': {'karma': i}},
-                return_document=ReturnDocument.AFTER
-                )
-        else:
-            filter['karma'] = i
-            collection.insert_one(filter)
-
     # Add/remove karma from db entries
     def karmic_repercussion(self, item, effect):
+        cur = conn.cursor()
         if effect == 'plus':
-            self.db_update({"protagonist": item.lower() }, 1)
+            karma_query = ''' INSERT INTO karma_table("name", karma) VALUES(%s, %s)
+                ON CONFLICT("name") DO UPDATE SET karma = karma_table.karma + 1 '''
+            values = [item.lower(), 1]
+            cur.execute(karma_query, values)
         else:
-            self.db_update({"protagonist": item.lower() }, -1)
+            karma_query = ''' INSERT INTO karma_table("name", karma) VALUES(%s, %s)
+                ON CONFLICT("name") DO UPDATE SET karma = karma_table.karma - 1 '''
+            values = [item.lower(), -1]
+            cur.execute(karma_query, values)
+        cur.close()
 
-    def find_karma(self, item, plus_or_minus):
-        db_entry = collection.find_one({"protagonist": item.lower() })
-        if db_entry['karma']:
-            if plus_or_minus == "plus":
-                # TODO: use this syntax to pull in random karmic phrases:
-                # stuff_in_string = "{} something something. ({} karma)".format(item, karma)
-                # From https://matthew-brett.github.io/teaching/string_formatting.html
-                return f"\"{item}\" feels warm and fuzzy! ({db_entry['karma']} karma)"
-            else:
-                return f"Ouch! \"{item}\" just took a dive! ({db_entry['karma']} karma)"
+    def find_karma(self, item):
+        cur = conn.cursor()
+        find_karma_q = ''' SELECT * FROM KARMA_TABLE
+        WHERE name = %s '''
+        cur.execute(find_karma_q, [item])
+        record = cur.fetchall()
+        cur.close()
+        return(record)
+
+    def compile_message(self, record, plus_or_minus):
+        name = ''
+        karma = ''
+        for tup in record:
+            name, karma = tup
+        if plus_or_minus == "plus":
+            return f"\"{name}\" feels warm and fuzzy! ({karma} karma)"
+        else:
+            return f"Ouch! \"{name}\" just took a dive! ({karma} karma)"
+        # TODO: use this syntax to pull in random karmic phrases:
+        #   stuff_in_string = "{} something something. ({} karma)".format(item, karma)
+        #        # From https://matthew-brett.github.io/teaching/string_formatting.html
+              
 
 load_dotenv()
 
-mongo_user = os.environ.get("MONGO_USERNAME")
-mongo_password = os.environ.get("MONGO_PASSWORD")
-dev_environment=os.environ.get("DEV_ENVIRONMENT")
 TOKEN = os.getenv('DISCORD_TOKEN')
-
-if dev_environment:
-    print(f"DEV ENVIRONMENT: {dev_environment}")
-    client = MongoClient()
-    
-else:
-    print(f"DEV ENVIRONMENT: {dev_environment}")
-    client = MongoClient(
-        username=mongo_user,
-        password=mongo_password
-    )
-
-db = client.unslack_karma_db
-collection = db.unslack_karma_db
 
 intents = discord.Intents.default()
 intents.message_content = True
-intents.members = True 
+intents.members = True
 
 client = MyClient(intents=intents)
 
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 
+conn = None
+cur = None
+
 if __name__ == '__main__':
-    client.run(TOKEN, log_handler=handler, log_level=logging.DEBUG)
+    conn = None
+    try:
+        print('Connecting to database...')
+        conn = psycopg2.connect('')
+        cur = conn.cursor()
+        print('PostgreSQL database version:')
+        cur.execute('SELECT version()')
+        db_version = cur.fetchone()
+        print(db_version)
+
+        create_karma = ''' CREATE TABLE IF NOT EXISTS karma_table (
+            name    varchar(40) PRIMARY KEY,
+            karma   int) '''
+
+        cur.execute(create_karma)
+        conn.commit()
+        cur.close()
+
+        client.run(TOKEN, log_handler=handler, log_level=logging.WARN)
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+    finally:
+        if cur is not None:
+            cur.close()
+        if conn is not None:    
+            conn.close()
