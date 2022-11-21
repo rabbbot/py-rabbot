@@ -13,11 +13,11 @@ class MyClient(discord.Client):
         content = message.content
         channel = message.channel
             
-        karma_matches = re.findall(r"(?:\S+)+(?:\s|)(?:\+\+|--)|\(.*?\)(?:\s|)--|\(.*?\)(?:\s|)\+\+", content)
+        karma_matches = re.findall(r"(?:\S+)+(?:\s|)(?:\+\+|--|—)|\(.*?\)(?:\s|)--|\(.*?\)(?:\s|)\+\+|\(.*?\)(?:\s|)—", content)
         if karma_matches:
             for item in karma_matches:
                 plus_or_minus = 'plus' if ('++' in item) else 'minus'
-                item = re.sub('--|\+\+','',item)
+                item = re.sub('--|\+\+|—','',item)
                 item = re.sub('(?:(?<=\))\s)|(?:\(|\))','',item).strip()
                 # TODO: Use a try statement here. int() in find_display_name is going to be problematic
                 if '@' in item:
