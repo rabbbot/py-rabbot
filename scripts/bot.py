@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 import psycopg2
 import asyncio
 
+class KarmaNameError(Exception):
+    pass
+
 class MyClient(discord.Client):
     async def on_ready(self):
         print(f'{client.user} has connected to Discord!')
@@ -17,16 +20,21 @@ class MyClient(discord.Client):
         karma_matches = re.findall(r"(?:\S+)+(?:\s|)(?:\+\+|--|—)|\(.*?\)(?:\s|)--|\(.*?\)(?:\s|)\+\+|\(.*?\)(?:\s|)—", content)
         if karma_matches:
             for item in karma_matches:
-                plus_or_minus = 'plus' if ('++' in item) else 'minus'
-                item = re.sub('--|\+\+|—','',item)
-                item = re.sub('(?:(?<=\))\s)|(?:\(|\))','',item).strip()
-                # TODO: Use a try statement here. int() in find_display_name is going to be problematic
-                if '@' in item:
-                    item = self.find_display_name(item)
-                await asyncio.create_task(self.karmic_repercussion(item.lower(), plus_or_minus))
-                record = await asyncio.create_task(self.find_karma(item.lower()))
-                message = self.compile_message(record, plus_or_minus)
-                await channel.send(message)
+                if len(item) > 40:
+                    error_message = "Sorry, the names of your karmic victims cannot exceed 40 characters."
+                    await channel.send(error_message)
+                    raise KarmaNameError(error_message)
+                else:
+                    plus_or_minus = 'plus' if ('++' in item) else 'minus'
+                    item = re.sub('--|\+\+|—','',item)
+                    item = re.sub('(?:(?<=\))\s)|(?:\(|\))','',item).strip()
+                    # TODO: Use a try statement here. int() in find_display_name is going to be problematic
+                    if '@' in item:
+                        item = self.find_display_name(item)
+                    await asyncio.create_task(self.karmic_repercussion(item.lower(), plus_or_minus))
+                    record = await asyncio.create_task(self.find_karma(item.lower()))
+                    message = self.compile_message(record, plus_or_minus)
+                    await channel.send(message)
 
     # Finds the display_name associated with a discord user ID
     def find_display_name(self, user):
@@ -42,11 +50,13 @@ class MyClient(discord.Client):
                 ON CONFLICT("name") DO UPDATE SET karma = karma_table.karma + 1 '''
             values = [item.lower(), 1]
             cur.execute(karma_query, values)
+            conn.commit()
         else:
             karma_query = ''' INSERT INTO karma_table("name", karma) VALUES(%s, %s)
                 ON CONFLICT("name") DO UPDATE SET karma = karma_table.karma - 1 '''
             values = [item.lower(), -1]
             cur.execute(karma_query, values)
+            conn.commit()
         cur.close()
 
     async def find_karma(self, item):
