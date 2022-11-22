@@ -4,6 +4,7 @@ import discord
 import logging
 from dotenv import load_dotenv
 import psycopg2
+import asyncio
 
 class MyClient(discord.Client):
     async def on_ready(self):
@@ -22,8 +23,8 @@ class MyClient(discord.Client):
                 # TODO: Use a try statement here. int() in find_display_name is going to be problematic
                 if '@' in item:
                     item = self.find_display_name(item)
-                self.karmic_repercussion(item.lower(), plus_or_minus)
-                record = self.find_karma(item.lower())
+                await asyncio.create_task(self.karmic_repercussion(item.lower(), plus_or_minus))
+                record = await asyncio.create_task(self.find_karma(item.lower()))
                 message = self.compile_message(record, plus_or_minus)
                 await channel.send(message)
 
@@ -34,7 +35,7 @@ class MyClient(discord.Client):
         return profile_name.name
 
     # Add/remove karma from db entries
-    def karmic_repercussion(self, item, effect):
+    async def karmic_repercussion(self, item, effect):
         cur = conn.cursor()
         if effect == 'plus':
             karma_query = ''' INSERT INTO karma_table("name", karma) VALUES(%s, %s)
@@ -48,7 +49,7 @@ class MyClient(discord.Client):
             cur.execute(karma_query, values)
         cur.close()
 
-    def find_karma(self, item):
+    async def find_karma(self, item):
         cur = conn.cursor()
         find_karma_q = ''' SELECT * FROM KARMA_TABLE
         WHERE name = %s '''
