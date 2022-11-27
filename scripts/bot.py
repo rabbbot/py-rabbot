@@ -116,7 +116,7 @@ if __name__ == '__main__':
         conn.commit()
         cur.close()
 
-        client.run(TOKEN, log_handler=handler, log_level=logging.WARN)
+        client.run(TOKEN, log_handler=handler, log_level=logging.WARN, reconnect=True)
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
     finally:
