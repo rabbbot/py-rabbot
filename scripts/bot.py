@@ -20,7 +20,7 @@ class MyClient(discord.Client):
         )
 
     async def setup_hook(self):
-        db = await asyncpg.create_pool(**CREDENTIALS)
+        db = await asyncpg.create_pool(DATABASE_URL)
 
         create_karma = ''' CREATE TABLE IF NOT EXISTS karma_table (
             name    varchar(40) PRIMARY KEY,
@@ -63,7 +63,7 @@ class MyClient(discord.Client):
 
     # Add/remove karma from db entries
     async def karmic_repercussion(self, item, effect):
-        db = await asyncpg.create_pool(**CREDENTIALS)
+        db = await asyncpg.create_pool(DATABASE_URL)
         if effect == 'plus':
             karma_query = ''' INSERT INTO karma_table("name", karma) VALUES($1, $2)
                 ON CONFLICT("name") DO UPDATE SET karma = karma_table.karma + 1 '''
@@ -75,12 +75,13 @@ class MyClient(discord.Client):
         await db.close()
 
     async def find_karma(self, item):
-        db = await asyncpg.create_pool(**CREDENTIALS)
+        db = await asyncpg.create_pool(DATABASE_URL)
         connection = await db.acquire()
         async with connection.transaction():
             find_karma_q = "SELECT * FROM KARMA_TABLE WHERE name = $1"
             record = await db.fetchrow(find_karma_q, item)
         await db.release(connection)
+        await db.close()
         return(record)
 
     def compile_message(self, record, plus_or_minus):
@@ -98,12 +99,7 @@ class MyClient(discord.Client):
 load_dotenv()
 
 TOKEN = os.getenv('DISCORD_TOKEN')
-CREDENTIALS = {
-            "user": f"{os.getenv('PGUSER')}",
-            "password": f"{os.getenv('PGPASSWORD')}",
-            "database": f"{os.getenv('PGDATABASE')}",
-            "host": f"{os.getenv('PGHOST')}",
-        }
+DATABASE_URL = os.getenv('DATABASE_URL')
 
 # Logging
 handler = logging.handlers.RotatingFileHandler(
