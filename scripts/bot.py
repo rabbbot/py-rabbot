@@ -103,7 +103,6 @@ CREDENTIALS = {
             "password": f"{os.getenv('PGPASSWORD')}",
             "database": f"{os.getenv('PGDATABASE')}",
             "host": f"{os.getenv('PGHOST')}",
-            "port": f"{os.getenv('PGPORT')}"
         }
 
 # Logging
