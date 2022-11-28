@@ -1,15 +1,34 @@
 import os
 import re
 import discord
-import logging
+import logging, logging.handlers
 from dotenv import load_dotenv
-import psycopg2
+import asyncpg
 import asyncio
 
 class KarmaNameError(Exception):
     pass
 
 class MyClient(discord.Client):
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.message_content = True
+        intents.members = True
+
+        super().__init__(
+            intents=intents,
+        )
+
+    async def setup_hook(self):
+        db = await asyncpg.create_pool(**CREDENTIALS)
+
+        create_karma = ''' CREATE TABLE IF NOT EXISTS karma_table (
+            name    varchar(40) PRIMARY KEY,
+            karma   int) '''
+
+        await db.execute(create_karma)
+        await db.close()
+
     async def on_ready(self):
         print(f'{client.user} has connected to Discord!')
 
@@ -17,7 +36,7 @@ class MyClient(discord.Client):
         content = message.content
         channel = message.channel
             
-        karma_matches = re.findall(r"(?:\S+)+(?:\s|)(?:\+\+|--|—)|\(.*?\)(?:\s|)--|\(.*?\)(?:\s|)\+\+|\(.*?\)(?:\s|)—", content)
+        karma_matches = re.findall(r"(?:\S+)+(?:\s|)(?:\+\+|--|—)|\(.*?\)(?:\s|)--|\(.*?\)(?:\s|)\+\+|\(.*?\)(?:\s|)—", content)    
         if karma_matches:
             for item in karma_matches:
                 if len(item) > 40:
@@ -44,35 +63,29 @@ class MyClient(discord.Client):
 
     # Add/remove karma from db entries
     async def karmic_repercussion(self, item, effect):
-        cur = conn.cursor()
+        db = await asyncpg.create_pool(**CREDENTIALS)
         if effect == 'plus':
-            karma_query = ''' INSERT INTO karma_table("name", karma) VALUES(%s, %s)
+            karma_query = ''' INSERT INTO karma_table("name", karma) VALUES($1, $2)
                 ON CONFLICT("name") DO UPDATE SET karma = karma_table.karma + 1 '''
-            values = [item.lower(), 1]
-            cur.execute(karma_query, values)
-            conn.commit()
+            await db.execute(karma_query, item.lower(), 1)
         else:
-            karma_query = ''' INSERT INTO karma_table("name", karma) VALUES(%s, %s)
+            karma_query = ''' INSERT INTO karma_table("name", karma) VALUES($1, $2)
                 ON CONFLICT("name") DO UPDATE SET karma = karma_table.karma - 1 '''
-            values = [item.lower(), -1]
-            cur.execute(karma_query, values)
-            conn.commit()
-        cur.close()
+            await db.execute(karma_query, item.lower(), -1)
+        await db.close()
 
     async def find_karma(self, item):
-        cur = conn.cursor()
-        find_karma_q = ''' SELECT * FROM KARMA_TABLE
-        WHERE name = %s '''
-        cur.execute(find_karma_q, [item])
-        record = cur.fetchall()
-        cur.close()
+        db = await asyncpg.create_pool(**CREDENTIALS)
+        connection = await db.acquire()
+        async with connection.transaction():
+            find_karma_q = "SELECT * FROM KARMA_TABLE WHERE name = $1"
+            record = await db.fetchrow(find_karma_q, item)
+        await db.release(connection)
         return(record)
 
     def compile_message(self, record, plus_or_minus):
-        name = ''
-        karma = ''
-        for tup in record:
-            name, karma = tup
+        name = record['name']
+        karma = record['karma']
         if plus_or_minus == "plus":
             return f"\"{name}\" feels warm and fuzzy! ({karma} karma)"
         else:
@@ -80,47 +93,28 @@ class MyClient(discord.Client):
         # TODO: use this syntax to pull in random karmic phrases:
         #   stuff_in_string = "{} something something. ({} karma)".format(item, karma)
         #        # From https://matthew-brett.github.io/teaching/string_formatting.html
-              
+    
 
 load_dotenv()
 
 TOKEN = os.getenv('DISCORD_TOKEN')
+CREDENTIALS = {
+            "user": f"{os.getenv('PGUSER')}",
+            "password": f"{os.getenv('PGPASSWORD')}",
+            "database": f"{os.getenv('PGDATABASE')}",
+            "host": f"{os.getenv('PGHOST')}",
+            "port": f"{os.getenv('PGPORT')}"
+        }
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
+# Logging
+handler = logging.handlers.RotatingFileHandler(
+    filename='discord.log',
+    encoding='utf-8',
+    maxBytes=32 * 1024 * 1024,  # 32 MiB
+    backupCount=5,  # Rotate through 5 files
+)
 
-client = MyClient(intents=intents)
+discord.utils.setup_logging(handler=handler, level=logging.DEBUG)
 
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-
-conn = None
-cur = None
-
-if __name__ == '__main__':
-    conn = None
-    try:
-        print('Connecting to database...')
-        conn = psycopg2.connect('')
-        cur = conn.cursor()
-        print('PostgreSQL database version:')
-        cur.execute('SELECT version()')
-        db_version = cur.fetchone()
-        print(db_version)
-
-        create_karma = ''' CREATE TABLE IF NOT EXISTS karma_table (
-            name    varchar(40) PRIMARY KEY,
-            karma   int) '''
-
-        cur.execute(create_karma)
-        conn.commit()
-        cur.close()
-
-        client.run(TOKEN, log_handler=handler, log_level=logging.WARN, reconnect=True)
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
-    finally:
-        if cur is not None:
-            cur.close()
-        if conn is not None:    
-            conn.close()
+client = MyClient()
+client.run(TOKEN, log_handler=handler, log_level=logging.WARN, reconnect=True)
