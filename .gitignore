@@ -7,3 +7,4 @@ __pycache__/
 *.pyc
 **/*/karma.py
 **/*/test2.py
+admin_scripts
