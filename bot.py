@@ -1,5 +1,4 @@
 import os
-import sys
 import discord
 import logging, logging.handlers
 from dotenv import load_dotenv
@@ -8,7 +7,7 @@ from discord.ext import commands
 import re
 from motor.motor_asyncio import AsyncIOMotorClient
 from pprint import pprint
-import inspect
+from cogs.puggers import Puggers
 
 # Logging
 handler = logging.handlers.RotatingFileHandler(
@@ -35,8 +34,12 @@ db = mongo_client.db_name
 collection = db.karma
 
 async def main():
+
+    await client.add_cog(Puggers(bot=client))
+
     async with client:
         await client.start(TOKEN)
+
 
 @client.event
 async def on_ready():
