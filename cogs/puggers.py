@@ -12,7 +12,6 @@ class Puggers(commands.Cog):
 
     @commands.command()
     async def pugbomb(self, ctx):
-        load_dotenv(dotenv_path='../.env')
         params = parse.urlencode({
             "q": "pug",
             "api_key": f"{os.getenv('GIPHY_TOKEN')}",
