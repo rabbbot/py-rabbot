@@ -31,8 +31,3 @@ class Puggers(commands.Cog):
         select_5 = random.sample(urls, 5)
         for entry in urls:
             await ctx.send(entry)
-
-        
-
-
-        #await ctx.send("https://media.giphy.com/media/1MCY9kPHuGG1G/giphy.gif")
