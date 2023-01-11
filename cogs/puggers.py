@@ -12,7 +12,7 @@ class Puggers(commands.Cog):
 
     @commands.command()
     async def pugbomb(self, ctx):
-        # Print a random pug
+        load_dotenv(dotenv_path='../.env')
         params = parse.urlencode({
             "q": "pug",
             "api_key": f"{os.getenv('GIPHY_TOKEN')}",
@@ -29,5 +29,5 @@ class Puggers(commands.Cog):
                     urls.append(dict["url"])
         
         select_5 = random.sample(urls, 5)
-        for entry in urls:
+        for entry in select_5:
             await ctx.send(entry)
