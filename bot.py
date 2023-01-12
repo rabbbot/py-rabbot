@@ -16,7 +16,7 @@ handler = logging.handlers.RotatingFileHandler(
     maxBytes=32 * 1024 * 1024,  # 32 MiB
     backupCount=5,  # Rotate through 5 files
 )
-discord.utils.setup_logging(handler=handler, level=logging.DEBUG)
+discord.utils.setup_logging(handler=handler, level=logging.ERROR)
 
 # Intents
 intents = discord.Intents.default()
