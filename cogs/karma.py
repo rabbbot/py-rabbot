@@ -74,7 +74,7 @@ class Karma(commands.Cog):
     async def find_display_name(self, user):
         discord_user = re.sub('@','',user)
         try:
-            profile_name = self.client.get_user(int(discord_user))
+            profile_name = self.bot.get_user(int(discord_user))
             profile_name = profile_name.name
         except:
             profile_name = discord_user
