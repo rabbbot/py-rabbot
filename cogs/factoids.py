@@ -17,15 +17,6 @@ class Factoids(commands.Cog):
 
     @commands.command(aliases=['f'])
     async def factoid(self, ctx, *payload: str):
-        '''
-        !f thing is thing
-        !f thing
-        
-        split string on first 'is'
-        add string before is to db as factoid name, sting after 'is' is the factoid result
-
-        if no 'is', search db for entire string and return factoid
-        '''
         payload_string = ' '.join(payload)
         if 'is' in payload_string:
             split_string = payload_string.split('is', 1)
