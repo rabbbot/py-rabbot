@@ -11,11 +11,12 @@ mongo_client = AsyncIOMotorClient(mongo_url)
 db = mongo_client.db_name
 collection = db.karma
 
+
 class Karma(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self._last_member = None    
-    
+        self._last_member = None
+
     @commands.command()
     async def printdb(self, ctx):
         print("Karma DB entries:\n")
