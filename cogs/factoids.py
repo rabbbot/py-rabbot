@@ -1,7 +1,6 @@
 from discord.ext import commands
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
-from pprint import pprint
 import os
 
 load_dotenv()

@@ -11,7 +11,6 @@ mongo_client = AsyncIOMotorClient(mongo_url)
 db = mongo_client.db_name
 collection = db.karma
 
-
 class Karma(commands.Cog):
     def __init__(self, bot):
         self.bot = bot

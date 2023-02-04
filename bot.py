@@ -4,8 +4,6 @@ import logging, logging.handlers
 from dotenv import load_dotenv
 import asyncio
 from discord.ext import commands
-import re
-from pprint import pprint
 
 # cogs
 from cogs.puggers import Puggers
@@ -33,7 +31,6 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 async def main():
-
     await client.add_cog(Puggers(bot=client))
     await client.add_cog(Karma(bot=client))
     await client.add_cog(Factoids(bot=client))
