@@ -16,14 +16,6 @@ class Karma(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self._last_member = None
-    
-    def check_prefix(ctx):  
-        return ctx.prefix == "!"
-
-    @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
-        if isinstance(error, commands.CheckFailure):
-            pass
 
     @commands.command()
     async def printdb(self, ctx):
@@ -34,7 +26,6 @@ class Karma(commands.Cog):
             pprint.pprint(f"{doc['victim']}: {doc['karma']}")
         await ctx.send("DB printed to console")
     
-    @commands.check(check_prefix)
     @commands.command(aliases=['k'])
     async def karma(self, ctx, op: str, *tuple: str):
         victim = ' '.join(tuple)

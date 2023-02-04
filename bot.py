@@ -10,6 +10,7 @@ from pprint import pprint
 # cogs
 from cogs.puggers import Puggers
 from cogs.karma import Karma
+from cogs.factoids import Factoids
 
 # logging
 handler = logging.handlers.RotatingFileHandler(
@@ -26,7 +27,7 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-client = commands.Bot(command_prefix=('!', '~'), intents=intents)
+client = commands.Bot(command_prefix=('!'), intents=intents)
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -35,6 +36,7 @@ async def main():
 
     await client.add_cog(Puggers(bot=client))
     await client.add_cog(Karma(bot=client))
+    await client.add_cog(Factoids(bot=client))
 
     async with client:
         await client.start(TOKEN)
